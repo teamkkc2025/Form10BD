@@ -342,14 +342,16 @@ def process_dataframe(df):
     # Columns that must NOT go through strip_special_chars:
     protected = {
         'Unique Identification Number',   # already cleaned
-        'ID Code',                         # already cleaned
-        'Change Note',                     # internal flag
-        date_col,                          # formatted date string
-        amt_col,                           # numeric
+        'ID Code',                        # already cleaned
+        'Change Note',                    # internal flag
+        date_col,                         # formatted date string
+        amt_col,                          # numeric
     }
     for col in df.columns:
-        if col not in protected and df[col].dtype == object:
-            df[col] = df[col].apply(strip_special_chars)
+        if col not in protected:
+            # Cast to object first so numeric-looking columns (int/float dtype)
+            # don't bypass the cleaner. strip_special_chars handles NaN safely.
+            df[col] = df[col].astype(object).apply(strip_special_chars)
 
     return df
 
