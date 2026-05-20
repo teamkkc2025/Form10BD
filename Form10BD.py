@@ -210,8 +210,13 @@ def clean_uid(uid_str):
 
 
 def validate_and_correct(row):
-    uid      = row['Unique Identification Number']
-    id_code  = str(row['ID Code']).strip().title()
+    uid     = row['Unique Identification Number']
+    # Treat NaN / blank / "nan" / "none" ID Code as empty so we can correct it
+    raw_id  = row['ID Code']
+    if pd.isna(raw_id) or str(raw_id).strip().lower() in ('nan', 'none', 'na', 'n/a', ''):
+        id_code = ''
+    else:
+        id_code = str(raw_id).strip().title()
     change_note = ''
 
     if pd.isna(uid) or str(uid).strip().lower() in ('not available', 'na', 'n/a', ''):
@@ -221,7 +226,7 @@ def validate_and_correct(row):
     else:
         uid       = str(uid).strip()
         uid_clean = clean_uid(uid)
-        correct_code = id_code
+        correct_code = id_code   # will be overwritten by pattern match below
         is_valid  = False
 
         if uid_clean.isdigit() and len(uid_clean) == 12:
@@ -244,12 +249,13 @@ def validate_and_correct(row):
 
         if not is_valid:
             change_note = 'Invalid UID Format - Needs Review'
-        elif id_code != correct_code:
+        elif id_code and id_code != correct_code:
             change_note = 'ID Code mismatch'
         elif str(uid) != str(uid_clean):
             change_note = 'Formatted UID'
 
-    return pd.Series([id_code, uid_clean, change_note])
+    # Always write back the determined correct_code (never "Nan")
+    return pd.Series([correct_code, uid_clean, change_note])
 
 
 def format_date(date_value):
